@@ -1,0 +1,213 @@
+name: Test Homework Assignments (HW1 & HW2)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-hw1:
+    runs-on: ubuntu-latest
+    name: Test HW1 (Hello World)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Show tool versions
+      run: |
+        echo "NASM version:"
+        nasm -version
+        echo "GCC version:"
+        gcc --version
+        
+    - name: Find assembly file in hw1 directory
+      run: |
+        echo "Looking for assembly files in hw1/ directory..."
+        ASM_FILES=$(find hw1/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw1/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Warning: Multiple .asm files found in hw1/ directory:"
+          echo "$ASM_FILES"
+          echo "Will process all files..."
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw1 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW1 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw1/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract filename without extension
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "hw1/$BASENAME.o"
+          ld "hw1/$BASENAME.o" -o "hw1/$BASENAME"
+          rm -f "hw1/$BASENAME.o"
+          
+          echo "✅ 编译成功: hw1/$BASENAME"
+          
+          # Run the program
+          echo "🚀 运行程序: hw1/$BASENAME"
+          chmod +x "hw1/$BASENAME"
+          OUTPUT=$(timeout 10s "./hw1/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify Hello World output (if it's hello_world.asm)
+          if [[ "$BASENAME" == *"hello"* ]]; then
+            if echo "$OUTPUT" | grep -q "Hello"; then
+              echo "✅ Hello World 程序运行正常"
+            else
+              echo "❌ Hello World 程序输出异常"
+              echo "Expected: 包含 'Hello'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  test-hw2:
+    runs-on: ubuntu-latest
+    name: Test HW2 (ASCII Display)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Find assembly file in hw2 directory
+      run: |
+        echo "Looking for assembly files in hw2/ directory..."
+        ASM_FILES=$(find hw2/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw2/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Warning: Multiple .asm files found in hw2/ directory:"
+          echo "$ASM_FILES"
+          echo "Will process all files..."
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw2 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW2 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw2/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract filename without extension
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "hw2/$BASENAME.o"
+          ld "hw2/$BASENAME.o" -o "hw2/$BASENAME"
+          rm -f "hw2/$BASENAME.o"
+          
+          echo "✅ 编译成功: hw2/$BASENAME"
+          
+          # Run the program
+          echo "🚀 运行程序: hw2/$BASENAME"
+          chmod +x "hw2/$BASENAME"
+          OUTPUT=$(timeout 10s "./hw2/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify ASCII output (if it's ascii.asm)
+          if [[ "$BASENAME" == *"ascii"* ]]; then
+            if echo "$OUTPUT" | grep -q "abcdefghijklm"; then
+              echo "✅ ASCII 程序第一行输出正确"
+            else
+              echo "❌ ASCII 程序第一行输出异常"
+              echo "Expected: 包含 'abcdefghijklm'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+            
+            if echo "$OUTPUT" | grep -q "nopqrstuvwxyz"; then
+              echo "✅ ASCII 程序第二行输出正确"
+            else
+              echo "❌ ASCII 程序第二行输出异常"
+              echo "Expected: 包含 'nopqrstuvwxyz'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+            
+            echo "✅ ASCII 程序输出格式验证通过"
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  summary:
+    runs-on: ubuntu-latest
+    name: Test Summary
+    needs: [test-hw1, test-hw2]
+    if: always()
+    
+    steps:
+    - name: Test Results Summary
+      run: |
+        echo "================================"
+        echo "📊 作业测试结果汇总"
+        echo "================================"
+        
+        HW1_STATUS="${{ needs.test-hw1.result }}"
+        HW2_STATUS="${{ needs.test-hw2.result }}"
+        
+        echo "🏠 HW1 (Hello World): $HW1_STATUS"
+        echo "🔤 HW2 (ASCII Display): $HW2_STATUS"
+        echo ""
+        
+        if [[ "$HW1_STATUS" == "success" && "$HW2_STATUS" == "success" ]]; then
+          echo "🎉 所有作业测试均通过！"
+          echo "✅ HW1: Hello World 程序正常运行"
+          echo "✅ HW2: ASCII 字符显示程序正常运行"
+          echo "🚀 所有汇编程序功能完整，质量良好！"
+        else
+          echo "⚠️  部分测试未通过，请检查："
+          if [[ "$HW1_STATUS" != "success" ]]; then
+            echo "❌ HW1 测试状态: $HW1_STATUS"
+          fi
+          if [[ "$HW2_STATUS" != "success" ]]; then
+            echo "❌ HW2 测试状态: $HW2_STATUS"
+          fi
+        fi
+        
+        echo "================================"

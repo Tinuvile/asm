@@ -3,12 +3,8 @@ name: Test Task1 Hex to Decimal Converter
 on:
   push:
     branches: [ main, master ]
-    paths: 
-      - 'task1/**'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'task1/**'
   workflow_dispatch:
 
 permissions:
