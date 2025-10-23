@@ -10,16 +10,20 @@ section .text
 
 _start:
     mov bl, 'a'                     ; bl寄存器存储当前字符，从'a'开始
-    mov r8, 0                       ; r8用于计数每行输出的字符数
-    mov r9, 2                       ; r9表示总行数（26个字母分2行，每行13个）
+    mov r10, 26                     ; 总共要输出26个字符
 
-row_loop:
-    mov rcx, 13                     ; 设置内层循环计数器：每行13个字符
+main_loop:
+    mov rcx, 13                     ; 设置每行字符数为13
+    
+    ; 检查剩余字符数，如果少于13个，则输出剩余的所有字符
+    cmp r10, 13
+    jge char_loop                   ; 如果剩余字符>=13，正常输出13个
+    mov rcx, r10                    ; 否则只输出剩余的字符数
     
 char_loop:
-    ; 检查是否已经超过'z'
-    cmp bl, 'z'
-    ja done                         ; 如果超过'z'，结束程序
+    ; 检查是否还有字符要输出
+    cmp r10, 0
+    je done                         ; 如果没有剩余字符，结束程序
     
     ; 将当前字符存储到缓冲区
     mov [char_buffer], bl
@@ -33,20 +37,24 @@ char_loop:
     
     ; 移动到下一个字符
     inc bl
+    dec r10                         ; 剩余字符数减1
     
     ; 继续内层循环
     loop char_loop                  ; loop指令：rcx自动减1，如果rcx!=0则跳转
     
-    ; 内层循环结束，输出换行符
+    ; 一行输出完毕，检查是否还有剩余字符
+    cmp r10, 0
+    je done                         ; 如果没有剩余字符，直接结束
+    
+    ; 输出换行符
     mov rax, 1                      ; sys_write
     mov rdi, 1                      ; stdout
     mov rsi, newline                ; 换行符
     mov rdx, newline_len            ; 换行符长度
     syscall
     
-    ; 检查是否还有更多行要输出
-    dec r9                          ; 行计数器减1
-    jnz row_loop                    ; 如果还有行未输出，继续外层循环
+    ; 继续下一行
+    jmp main_loop
 
 done:
     ; 程序结束
