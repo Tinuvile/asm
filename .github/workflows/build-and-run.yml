@@ -1,0 +1,63 @@
+name: Build and Run Assembly Code
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Show tool versions
+      run: |
+        echo "NASM version:"
+        nasm -version
+        echo "GCC version:"
+        gcc --version
+        echo "GDB version:"
+        gdb --version
+        
+    - name: Build assembly programs
+      run: |
+        echo "Building assembly programs..."
+        make all
+        
+    - name: Run Hello World program
+      run: |
+        echo "Running Hello World program:"
+        ./hello_world
+        
+    - name: Run Calculator program
+      run: |
+        echo "Running Calculator program:"
+        ./calculator
+        
+    - name: Run Fibonacci program
+      run: |
+        echo "Running Fibonacci program:"
+        ./fibonacci
+        
+    - name: Run all programs together
+      run: |
+        echo "Testing all programs:"
+        echo "================================"
+        echo "1. Hello World:"
+        ./hello_world
+        echo ""
+        echo "2. Calculator:"
+        ./calculator
+        echo ""
+        echo "3. Fibonacci:"
+        ./fibonacci
