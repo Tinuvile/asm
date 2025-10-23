@@ -22,3 +22,13 @@ asm/
 ├── Makefile                     # 编译配置文件
 └── README.md                    # 项目说明文档
 ```
+
+## 运行可执行程序
+
+在Linux环境下，可通过如下方式运行可执行程序：
+
+```bash
+ls -la hello_world        # 查看文件权限
+chmod +x hello_world      # 添加执行权限
+./hello_world 
+```
