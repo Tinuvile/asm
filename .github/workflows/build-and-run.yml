@@ -39,25 +39,8 @@ jobs:
         echo "Running Hello World program:"
         ./hello_world
         
-    - name: Run Calculator program
+    - name: Test program execution
       run: |
-        echo "Running Calculator program:"
-        ./calculator
-        
-    - name: Run Fibonacci program
-      run: |
-        echo "Running Fibonacci program:"
-        ./fibonacci
-        
-    - name: Run all programs together
-      run: |
-        echo "Testing all programs:"
+        echo "Testing Hello World program:"
         echo "================================"
-        echo "1. Hello World:"
         ./hello_world
-        echo ""
-        echo "2. Calculator:"
-        ./calculator
-        echo ""
-        echo "3. Fibonacci:"
-        ./fibonacci

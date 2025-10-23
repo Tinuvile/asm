@@ -7,7 +7,7 @@ ASM_FLAGS = -f elf64
 LINKER_FLAGS = 
 
 # 源文件和目标文件
-SOURCES = hello_world.asm calculator.asm fibonacci.asm
+SOURCES = hello_world.asm
 OBJECTS = $(SOURCES:.asm=.o)
 EXECUTABLES = $(SOURCES:.asm=)
 
@@ -29,32 +29,12 @@ hello_world: hello_world.o
 	@echo "Building Hello World program..."
 	$(LINKER) $(LINKER_FLAGS) hello_world.o -o hello_world
 
-# 单独编译计算器程序
-calculator: calculator.o
-	@echo "Building Calculator program..."
-	$(LINKER) $(LINKER_FLAGS) calculator.o -o calculator
-
-# 单独编译斐波那契程序
-fibonacci: fibonacci.o
-	@echo "Building Fibonacci program..."
-	$(LINKER) $(LINKER_FLAGS) fibonacci.o -o fibonacci
-
 # 运行所有程序
 run: all
 	@echo "========================================="
 	@echo "Running Hello World:"
 	@echo "========================================="
 	./hello_world
-	@echo ""
-	@echo "========================================="
-	@echo "Running Calculator:"
-	@echo "========================================="
-	./calculator
-	@echo ""
-	@echo "========================================="
-	@echo "Running Fibonacci:"
-	@echo "========================================="
-	./fibonacci
 	@echo ""
 
 # 清理生成的文件
@@ -74,8 +54,6 @@ help:
 	@echo "Available targets:"
 	@echo "  all        - Build all programs (default)"
 	@echo "  hello_world - Build only Hello World program"
-	@echo "  calculator - Build only Calculator program"
-	@echo "  fibonacci  - Build only Fibonacci program"
 	@echo "  run        - Build and run all programs"
 	@echo "  clean      - Remove all generated files"
 	@echo "  rebuild    - Clean and build all programs"
