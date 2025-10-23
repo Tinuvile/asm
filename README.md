@@ -4,4 +4,4 @@
 
 ![](image.png)
 
-程序编写建议本地进行，如果需要使用github action，可以写到project文件夹，其中一个任务会运行该文件夹中的.asm文件
+程序编写与调试建议本地进行，如果需要使用github action，可以写到project文件夹，其中一个任务会运行该文件夹中的.asm文件
