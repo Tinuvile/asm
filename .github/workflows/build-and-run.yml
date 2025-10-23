@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-and-run:
@@ -80,20 +80,5 @@ jobs:
         echo "================================"
         chmod +x "project/$EXECUTABLE_NAME"
         "./project/$EXECUTABLE_NAME"
-        
-    - name: Commit and push executable
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        
-        # Add the executable file
-        git add "project/$EXECUTABLE_NAME"
-        
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "Auto-build: Add compiled executable $EXECUTABLE_NAME"
-          git push
-          echo "Executable pushed to repository"
-        fi
+        echo "================================"
+        echo "✅ Program executed successfully!"

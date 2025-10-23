@@ -1,0 +1,226 @@
+name: Test Task1 Hex to Decimal Converter
+
+on:
+  push:
+    branches: [ main, master ]
+    paths: 
+      - 'task1/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'task1/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-task1:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Show tool versions
+      run: |
+        echo "NASM version:"
+        nasm -version
+        echo "GCC version:"
+        gcc --version
+        echo "GDB version:"
+        gdb --version
+        
+    - name: Find assembly file in task1 directory
+      run: |
+        echo "Looking for assembly files in task1/ directory..."
+        ASM_FILES=$(find task1/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in task1/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Error: Multiple .asm files found in task1/ directory:"
+          echo "$ASM_FILES"
+          echo "Please ensure only one .asm file exists in task1/ directory"
+          exit 1
+        fi
+        
+        ASM_FILE=$(echo "$ASM_FILES" | head -1)
+        echo "Found assembly file: $ASM_FILE"
+        echo "ASM_FILE=$ASM_FILE" >> $GITHUB_ENV
+        
+        # Extract filename without extension for executable name
+        BASENAME=$(basename "$ASM_FILE" .asm)
+        echo "EXECUTABLE_NAME=$BASENAME" >> $GITHUB_ENV
+        echo "Will create executable: $BASENAME"
+        
+    - name: Build assembly program
+      run: |
+        echo "Building assembly program: $ASM_FILE"
+        echo "Output executable: task1/$EXECUTABLE_NAME"
+        
+        # Assemble the .asm file to .o file
+        nasm -f elf64 "$ASM_FILE" -o "task1/$EXECUTABLE_NAME.o"
+        
+        # Link the .o file to create executable in task1 directory
+        ld "task1/$EXECUTABLE_NAME.o" -o "task1/$EXECUTABLE_NAME"
+        
+        # Clean up object file
+        rm -f "task1/$EXECUTABLE_NAME.o"
+        
+        echo "Build completed successfully"
+        ls -la task1/
+        
+    - name: Test single hex digit - A
+      run: |
+        echo "测试单个16进制字符 'A'"
+        echo "================================"
+        chmod +x "task1/$EXECUTABLE_NAME"
+        OUTPUT=$(echo "A" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值10
+        if echo "$OUTPUT" | grep -q "10"; then
+          echo "✅ 测试通过: A -> 10"
+        else
+          echo "❌ 测试失败: A 应该转换为 10"
+          exit 1
+        fi
+        
+    - name: Test single hex digit - 9
+      run: |
+        echo "测试单个16进制字符 '9'"
+        echo "================================"
+        OUTPUT=$(echo "9" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值9
+        if echo "$OUTPUT" | grep -q "9"; then
+          echo "✅ 测试通过: 9 -> 9"
+        else
+          echo "❌ 测试失败: 9 应该转换为 9"
+          exit 1
+        fi
+        
+    - name: Test single hex digit - 0
+      run: |
+        echo "测试单个16进制字符 '0'"
+        echo "================================"
+        OUTPUT=$(echo "0" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值0
+        if echo "$OUTPUT" | grep -q "0"; then
+          echo "✅ 测试通过: 0 -> 0"
+        else
+          echo "❌ 测试失败: 0 应该转换为 0"
+          exit 1
+        fi
+        
+    - name: Test double hex digits - FF
+      run: |
+        echo "测试两位16进制字符 'FF'"
+        echo "================================"
+        OUTPUT=$(echo "FF" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值255
+        if echo "$OUTPUT" | grep -q "255"; then
+          echo "✅ 测试通过: FF -> 255"
+        else
+          echo "❌ 测试失败: FF 应该转换为 255"
+          exit 1
+        fi
+        
+    - name: Test double hex digits - 1a (mixed case)
+      run: |
+        echo "测试两位16进制字符 '1a' (混合大小写)"
+        echo "================================"
+        OUTPUT=$(echo "1a" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值26
+        if echo "$OUTPUT" | grep -q "26"; then
+          echo "✅ 测试通过: 1a -> 26"
+        else
+          echo "❌ 测试失败: 1a 应该转换为 26"
+          exit 1
+        fi
+        
+    - name: Test double hex digits - B7
+      run: |
+        echo "测试两位16进制字符 'B7'"
+        echo "================================"
+        OUTPUT=$(echo "B7" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值183 (11*16 + 7 = 183)
+        if echo "$OUTPUT" | grep -q "183"; then
+          echo "✅ 测试通过: B7 -> 183"
+        else
+          echo "❌ 测试失败: B7 应该转换为 183"
+          exit 1
+        fi
+        
+    - name: Test invalid hex character - G
+      run: |
+        echo "测试无效16进制字符 'G'"
+        echo "================================"
+        OUTPUT=$(echo "G" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含错误信息
+        if echo "$OUTPUT" | grep -q "输入格式错误"; then
+          echo "✅ 测试通过: G -> 显示错误信息"
+        else
+          echo "❌ 测试失败: G 应该显示错误信息"
+          exit 1
+        fi
+        
+    - name: Test invalid input length - 123
+      run: |
+        echo "测试无效输入长度 '123' (超过2位)"
+        echo "================================"
+        OUTPUT=$(echo "123" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含错误信息
+        if echo "$OUTPUT" | grep -q "输入格式错误"; then
+          echo "✅ 测试通过: 123 -> 显示错误信息"
+        else
+          echo "❌ 测试失败: 123 应该显示错误信息"
+          exit 1
+        fi
+        
+    - name: Test edge case - f (lowercase)
+      run: |
+        echo "测试小写字符 'f'"
+        echo "================================"
+        OUTPUT=$(echo "f" | "./task1/$EXECUTABLE_NAME")
+        echo "$OUTPUT"
+        
+        # 验证输出包含正确的十进制值15
+        if echo "$OUTPUT" | grep -q "15"; then
+          echo "✅ 测试通过: f -> 15"
+        else
+          echo "❌ 测试失败: f 应该转换为 15"
+          exit 1
+        fi
+        
+    - name: Test comprehensive results summary
+      run: |
+        echo "================================"
+        echo "🎉 所有测试用例均通过！"
+        echo "================================"
+        echo "✅ 单个字符测试: A(10), 9(9), 0(0), f(15)"
+        echo "✅ 两位字符测试: FF(255), 1a(26), B7(183)"
+        echo "✅ 错误处理测试: G(错误), 123(错误)"
+        echo "✅ 程序功能完全正常！"
+        echo "================================"
