@@ -1,0 +1,27 @@
+# Object files
+*.o
+
+# Assembly temporary files
+*.tmp
+
+# Editor backup files
+*~
+*.swp
+*.swo
+.vscode/
+.DS_Store
+
+# Log files
+*.log
+
+# Core dumps
+core
+core.*
+
+# Executables in root directory (we only want them in project/ directory)
+/hello_world
+/calculator
+/fibonacci
+
+# But allow executables in project directory
+!project/*

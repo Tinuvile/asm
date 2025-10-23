@@ -7,6 +7,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
@@ -29,18 +32,68 @@ jobs:
         echo "GDB version:"
         gdb --version
         
-    - name: Build assembly programs
+    - name: Find assembly file in project directory
       run: |
-        echo "Building assembly programs..."
-        make all
+        echo "Looking for assembly files in project/ directory..."
+        ASM_FILES=$(find project/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
         
-    - name: Run Hello World program
-      run: |
-        echo "Running Hello World program:"
-        ./hello_world
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in project/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Error: Multiple .asm files found in project/ directory:"
+          echo "$ASM_FILES"
+          echo "Please ensure only one .asm file exists in project/ directory"
+          exit 1
+        fi
         
-    - name: Test program execution
+        ASM_FILE=$(echo "$ASM_FILES" | head -1)
+        echo "Found assembly file: $ASM_FILE"
+        echo "ASM_FILE=$ASM_FILE" >> $GITHUB_ENV
+        
+        # Extract filename without extension for executable name
+        BASENAME=$(basename "$ASM_FILE" .asm)
+        echo "EXECUTABLE_NAME=$BASENAME" >> $GITHUB_ENV
+        echo "Will create executable: $BASENAME"
+        
+    - name: Build assembly program
       run: |
-        echo "Testing Hello World program:"
+        echo "Building assembly program: $ASM_FILE"
+        echo "Output executable: project/$EXECUTABLE_NAME"
+        
+        # Assemble the .asm file to .o file
+        nasm -f elf64 "$ASM_FILE" -o "project/$EXECUTABLE_NAME.o"
+        
+        # Link the .o file to create executable in project directory
+        ld "project/$EXECUTABLE_NAME.o" -o "project/$EXECUTABLE_NAME"
+        
+        # Clean up object file
+        rm -f "project/$EXECUTABLE_NAME.o"
+        
+        echo "Build completed successfully"
+        ls -la project/
+        
+    - name: Run assembly program
+      run: |
+        echo "Running assembly program: project/$EXECUTABLE_NAME"
         echo "================================"
-        ./hello_world
+        chmod +x "project/$EXECUTABLE_NAME"
+        "./project/$EXECUTABLE_NAME"
+        
+    - name: Commit and push executable
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add the executable file
+        git add "project/$EXECUTABLE_NAME"
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Auto-build: Add compiled executable $EXECUTABLE_NAME"
+          git push
+          echo "Executable pushed to repository"
+        fi
