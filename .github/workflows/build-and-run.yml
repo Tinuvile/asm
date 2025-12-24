@@ -1,0 +1,84 @@
+name: Build and Run Assembly Code
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Show tool versions
+      run: |
+        echo "NASM version:"
+        nasm -version
+        echo "GCC version:"
+        gcc --version
+        echo "GDB version:"
+        gdb --version
+        
+    - name: Find assembly file in project directory
+      run: |
+        echo "Looking for assembly files in project/ directory..."
+        ASM_FILES=$(find project/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in project/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Error: Multiple .asm files found in project/ directory:"
+          echo "$ASM_FILES"
+          echo "Please ensure only one .asm file exists in project/ directory"
+          exit 1
+        fi
+        
+        ASM_FILE=$(echo "$ASM_FILES" | head -1)
+        echo "Found assembly file: $ASM_FILE"
+        echo "ASM_FILE=$ASM_FILE" >> $GITHUB_ENV
+        
+        # Extract filename without extension for executable name
+        BASENAME=$(basename "$ASM_FILE" .asm)
+        echo "EXECUTABLE_NAME=$BASENAME" >> $GITHUB_ENV
+        echo "Will create executable: $BASENAME"
+        
+    - name: Build assembly program
+      run: |
+        echo "Building assembly program: $ASM_FILE"
+        echo "Output executable: project/$EXECUTABLE_NAME"
+        
+        # Assemble the .asm file to .o file
+        nasm -f elf64 "$ASM_FILE" -o "project/$EXECUTABLE_NAME.o"
+        
+        # Link the .o file to create executable in project directory
+        ld "project/$EXECUTABLE_NAME.o" -o "project/$EXECUTABLE_NAME"
+        
+        # Clean up object file
+        rm -f "project/$EXECUTABLE_NAME.o"
+        
+        echo "Build completed successfully"
+        ls -la project/
+        
+    - name: Run assembly program
+      run: |
+        echo "Running assembly program: project/$EXECUTABLE_NAME"
+        echo "================================"
+        chmod +x "project/$EXECUTABLE_NAME"
+        "./project/$EXECUTABLE_NAME"
+        echo "================================"
+        echo "✅ Program executed successfully!"

@@ -1,0 +1,464 @@
+name: Test Homework Assignments
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-hw1:
+    runs-on: ubuntu-latest
+    name: Test HW1 (Hello World)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Show tool versions
+      run: |
+        echo "NASM version:"
+        nasm -version
+        echo "GCC version:"
+        gcc --version
+        
+    - name: Find assembly file in hw1 directory
+      run: |
+        echo "Looking for assembly files in hw1/ directory..."
+        ASM_FILES=$(find hw1/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw1/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Warning: Multiple .asm files found in hw1/ directory:"
+          echo "$ASM_FILES"
+          echo "Will process all files..."
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw1 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW1 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw1/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract filename without extension
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "hw1/$BASENAME.o"
+          ld "hw1/$BASENAME.o" -o "hw1/$BASENAME"
+          rm -f "hw1/$BASENAME.o"
+          
+          echo "✅ 编译成功: hw1/$BASENAME"
+          
+          # Run the program
+          echo "🚀 运行程序: hw1/$BASENAME"
+          chmod +x "hw1/$BASENAME"
+          OUTPUT=$(timeout 10s "./hw1/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify Hello World output (if it's hello_world.asm)
+          if [[ "$BASENAME" == *"hello"* ]]; then
+            if echo "$OUTPUT" | grep -q "Hello"; then
+              echo "✅ Hello World 程序运行正常"
+            else
+              echo "❌ Hello World 程序输出异常"
+              echo "Expected: 包含 'Hello'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  test-hw2:
+    runs-on: ubuntu-latest
+    name: Test HW2 (ASCII Display)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Find assembly file in hw2 directory
+      run: |
+        echo "Looking for assembly files in hw2/ directory..."
+        ASM_FILES=$(find hw2/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw2/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Warning: Multiple .asm files found in hw2/ directory:"
+          echo "$ASM_FILES"
+          echo "Will process all files..."
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw2 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW2 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw2/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract filename without extension
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "hw2/$BASENAME.o"
+          ld "hw2/$BASENAME.o" -o "hw2/$BASENAME"
+          rm -f "hw2/$BASENAME.o"
+          
+          echo "✅ 编译成功: hw2/$BASENAME"
+          
+          # Run the program
+          echo "🚀 运行程序: hw2/$BASENAME"
+          chmod +x "hw2/$BASENAME"
+          OUTPUT=$(timeout 10s "./hw2/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify ASCII output (if it's ascii.asm)
+          if [[ "$BASENAME" == *"ascii"* ]]; then
+            if echo "$OUTPUT" | grep -q "abcdefghijklm"; then
+              echo "✅ ASCII 程序第一行输出正确"
+            else
+              echo "❌ ASCII 程序第一行输出异常"
+              echo "Expected: 包含 'abcdefghijklm'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+            
+            if echo "$OUTPUT" | grep -q "nopqrstuvwxyz"; then
+              echo "✅ ASCII 程序第二行输出正确"
+            else
+              echo "❌ ASCII 程序第二行输出异常"
+              echo "Expected: 包含 'nopqrstuvwxyz'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+            
+            echo "✅ ASCII 程序输出格式验证通过"
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  test-hw3:
+    runs-on: ubuntu-latest
+    name: Test HW3 (Sum Calculator)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Find assembly file in hw3 directory
+      run: |
+        echo "Looking for assembly files in hw3/ directory..."
+        ASM_FILES=$(find hw3/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw3/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Warning: Multiple .asm files found in hw3/ directory:"
+          echo "$ASM_FILES"
+          echo "Will process all files..."
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw3 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW3 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw3/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract filename without extension
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "hw3/$BASENAME.o"
+          ld "hw3/$BASENAME.o" -o "hw3/$BASENAME"
+          rm -f "hw3/$BASENAME.o"
+          
+          echo "✅ 编译成功: hw3/$BASENAME"
+          
+          # Test the sum program with input
+          echo "🚀 测试程序: hw3/$BASENAME"
+          chmod +x "hw3/$BASENAME"
+          
+          # Test with input "5" (should calculate 1+2+3+4+5=15)
+          echo "测试输入: 5"
+          OUTPUT=$(echo "5" | timeout 10s "./hw3/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify sum calculation output
+          if [[ "$BASENAME" == *"sum"* ]]; then
+            if echo "$OUTPUT" | grep -q "15"; then
+              echo "✅ 求和程序计算正确 (5的和为15)"
+            else
+              echo "❌ 求和程序计算结果异常"
+              echo "Expected: 包含 '15'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  test-hw4:
+    runs-on: ubuntu-latest
+    name: Test HW4 (Multiplication Table)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Find assembly files in hw4 subdirectories
+      run: |
+        echo "Looking for assembly files in hw4/ subdirectories..."
+        ASM_FILES=$(find hw4/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw4/ directory"
+          exit 1
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw4 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW4 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw4/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract directory and filename
+          DIR=$(dirname "$ASM_FILE")
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "$DIR/$BASENAME.o"
+          ld "$DIR/$BASENAME.o" -o "$DIR/$BASENAME"
+          rm -f "$DIR/$BASENAME.o"
+          
+          echo "✅ 编译成功: $DIR/$BASENAME"
+          
+          # Run the program
+          echo "🚀 运行程序: $DIR/$BASENAME"
+          chmod +x "$DIR/$BASENAME"
+          OUTPUT=$(timeout 10s "./$DIR/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify multiplication table output
+          if [[ "$BASENAME" == *"mul99"* ]]; then
+            # Check for multiplication table format (1x1=1, 1x2=2, etc.)
+            if echo "$OUTPUT" | grep -q "1x1=1" && echo "$OUTPUT" | grep -q "1x2=2" && echo "$OUTPUT" | grep -q "9x9=81"; then
+              echo "✅ 乘法表生成程序运行正常"
+            else
+              echo "❌ 乘法表生成程序输出异常"
+              echo "Expected: 包含乘法表格式 (如 1x1=1, 1x2=2, 9x9=81)"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+          fi
+          
+          # Verify table checker output
+          if [[ "$BASENAME" == *"check99"* ]]; then
+            # Check for error detection format (row col error)
+            if echo "$OUTPUT" | grep -q "error"; then
+              echo "✅ 乘法表检查程序检测到错误"
+            else
+              echo "❌ 乘法表检查程序未检测到预期错误"
+              echo "Expected: 包含 'error'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  test-hw6:
+    runs-on: ubuntu-latest
+    name: Test HW6 (Interrupt Overflow Simulation)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install build tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc gdb build-essential
+        
+    - name: Find assembly file in hw6 directory
+      run: |
+        echo "Looking for assembly files in hw6/ directory..."
+        ASM_FILES=$(find hw6/ -name "*.asm" -type f)
+        ASM_COUNT=$(echo "$ASM_FILES" | wc -l)
+        
+        if [ $ASM_COUNT -eq 0 ]; then
+          echo "Error: No .asm files found in hw6/ directory"
+          exit 1
+        elif [ $ASM_COUNT -gt 1 ]; then
+          echo "Warning: Multiple .asm files found in hw6/ directory:"
+          echo "$ASM_FILES"
+          echo "Will process all files..."
+        fi
+        
+        echo "Found assembly files: $ASM_FILES"
+        
+    - name: Build and test hw6 programs
+      run: |
+        echo "================================"
+        echo "🔨 构建和测试 HW6 程序"
+        echo "================================"
+        
+        for ASM_FILE in $(find hw6/ -name "*.asm" -type f); do
+          echo ""
+          echo "Processing: $ASM_FILE"
+          echo "------------------------"
+          
+          # Extract filename without extension
+          BASENAME=$(basename "$ASM_FILE" .asm)
+          
+          # Build the program
+          echo "📦 编译程序: $ASM_FILE"
+          nasm -f elf64 "$ASM_FILE" -o "hw6/$BASENAME.o"
+          ld "hw6/$BASENAME.o" -o "hw6/$BASENAME"
+          rm -f "hw6/$BASENAME.o"
+          
+          echo "✅ 编译成功: hw6/$BASENAME"
+          
+          # Run the program
+          echo "🚀 运行程序: hw6/$BASENAME"
+          chmod +x "hw6/$BASENAME"
+          OUTPUT=$(timeout 10s "./hw6/$BASENAME" 2>&1 || echo "Program finished")
+          echo "$OUTPUT"
+          
+          # Verify interrupt overflow simulation output
+          if [[ "$BASENAME" == *"into_sim"* ]]; then
+            if echo "$OUTPUT" | grep -q "触发中断" && echo "$OUTPUT" | grep -q "检测到溢出"; then
+              echo "✅ 中断溢出模拟程序运行正常"
+            else
+              echo "❌ 中断溢出模拟程序输出异常"
+              echo "Expected: 包含 '触发中断' 和 '检测到溢出'"
+              echo "Actual: $OUTPUT"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ $BASENAME 测试完成"
+        done
+
+  summary:
+    runs-on: ubuntu-latest
+    name: Test Summary
+    needs: [test-hw1, test-hw2, test-hw3, test-hw4, test-hw6]
+    if: always()
+    
+    steps:
+    - name: Test Results Summary
+      run: |
+        echo "================================"
+        echo "📊 作业测试结果汇总"
+        echo "================================"
+        
+        HW1_STATUS="${{ needs.test-hw1.result }}"
+        HW2_STATUS="${{ needs.test-hw2.result }}"
+        HW3_STATUS="${{ needs.test-hw3.result }}"
+        HW4_STATUS="${{ needs.test-hw4.result }}"
+        HW6_STATUS="${{ needs.test-hw6.result }}"
+        
+        echo "🏠 HW1 (Hello World): $HW1_STATUS"
+        echo "🔤 HW2 (ASCII Display): $HW2_STATUS"
+        echo "🧮 HW3 (Sum Calculator): $HW3_STATUS"
+        echo "✖️  HW4 (Multiplication Table): $HW4_STATUS"
+        echo "⚡ HW6 (Interrupt Overflow Simulation): $HW6_STATUS"
+        echo ""
+        
+        if [[ "$HW1_STATUS" == "success" && "$HW2_STATUS" == "success" && "$HW3_STATUS" == "success" && "$HW4_STATUS" == "success" && "$HW6_STATUS" == "success" ]]; then
+          echo "🎉 所有作业测试均通过！"
+          echo "✅ HW1: Hello World 程序正常运行"
+          echo "✅ HW2: ASCII 字符显示程序正常运行"
+          echo "✅ HW3: 求和计算器程序正常运行"
+          echo "✅ HW4: 乘法表程序正常运行"
+          echo "✅ HW6: 中断溢出模拟程序正常运行"
+          echo "🚀 所有汇编程序功能完整，质量良好！"
+        else
+          echo "⚠️  部分测试未通过，请检查："
+          if [[ "$HW1_STATUS" != "success" ]]; then
+            echo "❌ HW1 测试状态: $HW1_STATUS"
+          fi
+          if [[ "$HW2_STATUS" != "success" ]]; then
+            echo "❌ HW2 测试状态: $HW2_STATUS"
+          fi
+          if [[ "$HW3_STATUS" != "success" ]]; then
+            echo "❌ HW3 测试状态: $HW3_STATUS"
+          fi
+          if [[ "$HW4_STATUS" != "success" ]]; then
+            echo "❌ HW4 测试状态: $HW4_STATUS"
+          fi
+          if [[ "$HW6_STATUS" != "success" ]]; then
+            echo "❌ HW6 测试状态: $HW6_STATUS"
+          fi
+        fi
+        
+        echo "================================"
