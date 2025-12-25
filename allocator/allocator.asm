@@ -6,9 +6,7 @@
 
 ; 初始化的全局变量段
 section .data
-    ; msg_alloc1是一个Lable(标号), 汇编器会把它翻译成一个内存地址（指针）
     ; db(Define Byte) 定义字节
-    ; 0是结束符, 0x0A是换行符的ASCII码
     msg_alloc1: db "1. Allocated 32 bytes at: 0x", 0
     msg_write:  db "   Wrote data: ", 0
     msg_free:   db "2. Freed memory.", 0x0A, 0
