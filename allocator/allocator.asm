@@ -112,7 +112,7 @@ _start:
     call print_hex
     call print_newline
 
-    ; 3. 释放 A 和 B (顺序无所谓，因为我们是向后合并)
+    ; 3. 释放 A 和 B
     ; 先释放 B
     mov rdi, r13
     call my_free
@@ -207,7 +207,7 @@ my_malloc:
     
     ; 计算新 break = old_break + size
     ; 从栈顶读取 size，但不弹出
-    mov rdx, [rsp]          ; RDX = size (从栈里偷看一眼)
+    mov rdx, [rsp]          ; RDX = size
     lea rdi, [rbx + rdx]    ; RDI = 新的结束地址
     
     ; 申请空间 (sys_brk(new_addr))
@@ -240,7 +240,6 @@ my_malloc:
 
 .link_to_tail:
     ; 遍历找到当前的尾巴 (也就是 next 为 0 的那个块)
-    ; 最好应该用变量存 tail，但为了逻辑简单先这样写
     mov rdx, [heap_start]   ; 从头开始遍历
 .find_tail_loop:
     cmp qword [rdx + 8], 0  ; 检查当前块的Next指针是不是0
@@ -280,8 +279,7 @@ my_free:
     mov [rdi], rax          ; 写回
 
     ; --- [Coalescing Logic / 合并逻辑] ---
-    ; 循环检查：如果合并了一次，新变大的块后面可能紧接着还是个空闲块，
-    ; 所以要一直合并，直到后面是分配块或链表结尾为止。
+    ; 循环检查：一直合并，直到后面是分配块或链表结尾为止。
 
 .coalesce_loop:
     ; 获取 Next Block 的地址
@@ -323,63 +321,89 @@ strcpy:
     ; RDI = dest, RSI = src ; RSI源地址、RDI目标地址
     xor rcx, rcx            ; RCX清零
 .cp_loop:
-    mov al, [rsi + rcx]
-    mov [rdi + rcx], al
-    inc rcx
-    cmp al, 0
+    mov al, [rsi + rcx]     ; 读取 src[rcx]
+    mov [rdi + rcx], al     ; 写入 dest[rcx]
+    inc rcx                 ; rcx++
+    cmp al, 0               ; 是否遇到 '\0'
     jne .cp_loop
     ret
 
 ; ==========================================
 ; 辅助函数: Print Hex (64-bit)
+; 功能: 将 RAX 中的 64 位整数以 16 个十六进制字符形式输出到 stdout
+; 原理: 循环 16 次，每次处理 4 个二进制位(1个Hex位)，查表转ASCII并打印
 ; ==========================================
 print_hex:
-    push rbx
-    mov rcx, 16
-    mov rbx, rax
-.hex_loop:
-    rol rbx, 4
-    mov rax, rbx
-    and rax, 0x0F
-    mov al, [hex_map + rax]
-    mov [hex_buf], al
+    push rbx                ; 备份被调用者保存寄存器RBX
     
+    mov rcx, 16             ; 初始化循环计数器，64位整数 = 16 个 Hex 字符
+    mov rbx, rax            ; 将要打印的数值备份到 RBX
+
+.hex_loop:
+    ; --- 1. 取出最高 4 位 (Nibble) ---
+    rol rbx, 4              ; 循环左移 4 位。
+
+    mov rax, rbx            ; 把移位后的结果复制给 RAX
+    and rax, 0x0F           ; 与 0000...1111 进行 AND 运算。把高位全清零，只保留最低 4 位
+
+    ; --- 2. 查表转换 (数值 -> ASCII) ---
+    mov al, [hex_map + rax] ; 以 RAX 为索引，去 hex_map 数组里找对应的字符。
+                            ; 如果 RAX=0，取 '0'；如果 RAX=10 (0xA)，取 'A'。
+    mov [hex_buf], al       ; 将找到的字符存入内存缓冲区 hex_buf。
+
+    ; --- 3. 准备系统调用 (打印这 1 个字符) ---
     push rcx
     push rbx
     
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, hex_buf
-    mov rdx, 1
-    syscall
+    mov rax, 1              ; 系统调用号 1 = sys_write
+    mov rdi, 1              ; 参数1: 文件描述符 fd = 1 (标准输出 stdout)
+    mov rsi, hex_buf        ; 参数2: 缓冲区地址
+    mov rdx, 1              ; 参数3: 写入长度 = 1 字节
+    syscall                 ; 执行系统调用
     
-    pop rbx
-    pop rcx
-    dec rcx
-    jnz .hex_loop
-    pop rbx
-    ret
+    ; --- 4. 恢复现场并循环 ---
+    pop rbx                 
+    pop rcx                 
+    
+    dec rcx                 ; 计数器减 1
+    jnz .hex_loop           ; 如果 RCX != 0，跳回开头继续循环
+
+    pop rbx                 ; 还原函数最开始保存的 RBX
+    ret                     ; 函数返回
 
 ; ==========================================
 ; 辅助函数: Print String
+; 功能: 打印以 0 (NULL) 结尾的字符串
 ; ==========================================
 print_str:
-    push rdi
-    mov rdx, 0
+    push rdi                
+    mov rdx, 0              ; 初始化 RDX = 0，作为长度计数器 (Length Counter)
+
 .len_loop:
-    cmp byte [rdi + rdx], 0
-    je .print
-    inc rdx
-    jmp .len_loop
-.print:
-    mov rax, 1
-    mov rsi, rdi
-    mov rdi, 1
-    syscall
-    pop rdi
-    ret
+    ; --- 计算 strlen ---
+    cmp byte [rdi + rdx], 0 ; 检查 (基址 + 偏移) 处的字节是不是 0
+    je .print               ; 如果是 0 (结束符)，说明长度算完了，跳转到打印部分
     
+    inc rdx                 ; 否则，长度 + 1
+    jmp .len_loop           ; 继续检查下一个字符
+
+.print:
+    ; --- 执行输出 ---
+    mov rax, 1              ; 系统调用号 1 = sys_write
+    mov rsi, rdi            ; 参数2: 缓冲区首地址。
+    mov rdi, 1              ; 参数1: fd = 1 (stdout)
+                            ; 参数顺序是: RDI=fd, RSI=buffer, RDX=len
+                            
+    syscall                 ; 执行系统调用 -> 打印整个字符串
+
+    pop rdi                 ; 还原 RDI
+    ret                     ; 函数返回
+
+; ==========================================
+; 辅助函数: Print Newline
+; 功能: 打印一个换行符
+; ==========================================
 print_newline:
-    mov rdi, newline
-    call print_str
+    mov rdi, newline        ; 将换行符 "\n" 的地址加载到 RDI
+    call print_str          ; 复用 print_str 函数来打印它
     ret
