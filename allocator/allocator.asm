@@ -8,8 +8,7 @@
 section .data
     ; msg_alloc1是一个Lable(标号), 汇编器会把它翻译成一个内存地址（指针）
     ; db(Define Byte) 定义字节
-    ; ""中的内容会被翻译成ASCII码
-    ; 0是结束符, 下面的0x0A是换行符的ASCII码
+    ; 0是结束符, 0x0A是换行符的ASCII码
     msg_alloc1: db "1. Allocated 32 bytes at: 0x", 0
     msg_write:  db "   Wrote data: ", 0
     msg_free:   db "2. Freed memory.", 0x0A, 0
@@ -28,7 +27,7 @@ section .data
 
 ; 未初始化的全局变量段
 section .bss
-    ; resq(Reserve Quadword), 1word=2Bytes, Quadword=8Bytes
+    ; resq(Reserve Quadword), Quadword=8Bytes
     ; resb(Reserve Byte)
     heap_start: resq 1      ; 堆链表的头指针
     last_valid: resq 1      ; 最近访问的有效块（用于追加）
@@ -125,8 +124,6 @@ _start:
     call print_str
 
     ; 4. 申请 C (64 bytes) -> 实际占用 64+16=80
-    ; 如果没有合并，A 的空间(48)不够放 C，C 会申请新空间。
-    ; 如果合并了，现有空间(96)足够放 C(80)，C 应该复用 A 的地址。
     mov rdi, 64
     call my_malloc
     mov r14, rax
